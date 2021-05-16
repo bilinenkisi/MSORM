@@ -150,9 +150,12 @@ other_operators parameter will probably deprecated  in the newer versions. **kwa
 	
 	model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
 ## TARGET FEATURES
-
- - [ ] get method
- - [ ] count method
+ - [x] Added get method
+ - [x] Added first method
+ - [x] Added count method to Model class
+ - [x] Improved QueryDict class's dicts and values method
+ - [x] Added dict() and values() method to Model class
+ - [x] For dict() and dicts() methods, added depth parameter. (with depth parameter, related tables can be serialize as dictionary)
  - [ ] save system
  - [ ] auto model creator from existing table
  - [ ] Migration Support
