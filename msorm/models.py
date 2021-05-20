@@ -6,7 +6,7 @@ from typing import List
 import pyodbc
 
 import msorm.type_fields as type_fields
-from msorm.exceptions import NotInitializedError
+from msorm.exceptions import NotInitializedError, ItemNotFound
 
 connection = None
 __connected__ = False
@@ -41,15 +41,29 @@ class extras:
     @staticmethod
     def check_init(func):
         def core(*args, **kwargs):
-            __table_name__ = getattr(args[0],"__name__",None)
-            if __table_name__.startswith("INFORMATION_SCHEMA"):return func(*args,**kwargs)
+            __table_name__ = getattr(args[0], "__name__", "")
+
+            if __table_name__.startswith("INFORMATION_SCHEMA"): return func(*args, **kwargs)
             if not __connected__: raise NotInitializedError("MSORM must be initialized before model creation")
             return func(*args, **kwargs)
 
         return core
 
 
-class Model(object):
+# class ModelMeta(type):
+#     def __new__(cls, *args, **kwargs):
+#         print(args,"selam",kwargs,"sed")
+#         metadata = {}
+#         for key, val in args[2].items():
+#
+#             if isinstance(val, type_fields.field):
+#                 metadata[key] = val
+#         args[2]["metadata"] = metadata
+#
+#         return type(args[0],args[1],args[2])
+
+
+class Model():
     __fields__ = None
     __subclass__ = False
 
@@ -66,10 +80,16 @@ class Model(object):
                 setattr(self, field,
                         getattr(self, field).get_new(value=kwargs[field], model=fk.get_model(), name=fk.get_name()))
             else:
-                setattr(self, field, getattr(self, field).get_new(value=kwargs[field]))
+                setattr(self, field, getattr(self, field).get_new(value=kwargs[field]).value)
 
     @extras.check_init
     def __init_subclass__(cls, **kwargs):
+        metadata = {}
+        for key, val in cls.__dict__.items():
+            if isinstance(val,type_fields.field):
+                metadata[key] = val
+
+        cls.__metadata__ = metadata
         cls.__subclass__ = True
 
     @extras.check_init
@@ -92,7 +112,8 @@ class Model(object):
         }
         if depth == 0:
             for field in fields:
-                _dict[field] = getattr(self, field).value
+                attr = getattr(self, field)
+                _dict[field] = getattr(self, field) if isinstance(attr,type_fields.foreignKey) else attr
 
             return _dict
         elif depth >= 1:
@@ -100,8 +121,11 @@ class Model(object):
                 reference_field = getattr(self, field)
                 if isinstance(reference_field, type_fields.foreignKey):
                     _dict[type(reference_field.model).__name__] = reference_field.model.dict(depth=depth - 1)
+                    _dict[field] = reference_field.value
 
-                _dict[field] = reference_field.value
+                else:
+
+                    _dict[field] = reference_field
             return _dict
         else:
             raise ValueError("depth cannot be less than 0")
@@ -116,7 +140,7 @@ class Model(object):
 
         fields = fields if fields else getattr(self, "__fields__", None)
 
-        return tuple(getattr(self, field).value for field in fields)
+        return tuple(getattr(self, field).value if isinstance(getattr(self, field),type_fields.foreignKey) else getattr(self, field) for field in fields)
 
     @classmethod
     @extras.check_init
@@ -223,7 +247,6 @@ class Model(object):
         for field in self.__fields__:
             yield getattr(self, field, None)
 
-
 class QueryDict:
     __model__ = Model
 
@@ -241,30 +264,31 @@ class QueryDict:
         return first == second
 
     @lru_cache()
-    def find(self, field, value):
+    def find(self, func):
         founds = []
         for obj in self.__objects__:
-            found = obj if getattr(obj, field, None).value == value else None
+            found = obj if func(obj) else None
             if found: founds.append(found)
         return QueryDict(founds)
 
-    def get(self, field, value):
+    def get(self, func):
         for obj in self.__objects__:
-            found = obj if getattr(obj, field, None).value == value else None
+            found = obj if func(obj) else None
             if found:
                 return found
-        return found
+        raise ItemNotFound("Cannot found item")
 
-    def remove(self, field, value):
+    def remove(self, func):
         for obj in self.__objects__:
-            found = obj if getattr(obj, field, None).value == value else None
+            found = obj if func(obj) else None
             if found:
                 self.__objects__.remove(found)
                 return
+        raise ItemNotFound("Cannot found item")
 
-    def pop(self, field, value):
+    def pop(self, func):
         for obj in self.__objects__:
-            found = obj if getattr(obj, field, None).value == value else None
+            found = obj if func(obj) else None
             if found:
                 self.__objects__.remove(found)
                 return found
@@ -345,6 +369,7 @@ class INFORMATION_SCHEMA_COLUMNS(Model):
     DOMAIN_CATALOG = type_fields.nvarchar()
     DOMAIN_SCHEMA = type_fields.nvarchar()
     DOMAIN_NAME = type_fields.nvarchar()
+
     @classmethod
     @extras.check_init
     def get(cls, *args, **kwargs):
