@@ -4,5 +4,5 @@ class NotSafeWarning(BaseWarning):
     """NotImplemented"""
 class NotInitializedError(BaseException):
     """:raise when models not initialized"""
-class ItemNotFound(BaseException):
+class ItemNotFoundException(BaseException):
     """:raise when item not found"""

@@ -6,7 +6,7 @@ from typing import List
 import pyodbc
 
 import msorm.type_fields as type_fields
-from msorm.exceptions import NotInitializedError, ItemNotFound
+from msorm.exceptions import NotInitializedError, ItemNotFoundException
 
 connection = None
 __connected__ = False
@@ -276,7 +276,7 @@ class QueryDict:
             found = obj if func(obj) else None
             if found:
                 return found
-        raise ItemNotFound("Cannot found item")
+        raise ItemNotFoundException("Cannot found item")
 
     def remove(self, func):
         for obj in self.__objects__:
@@ -284,7 +284,7 @@ class QueryDict:
             if found:
                 self.__objects__.remove(found)
                 return
-        raise ItemNotFound("Cannot found item")
+        raise ItemNotFoundException("Cannot found item")
 
     def pop(self, func):
         for obj in self.__objects__:
@@ -292,6 +292,7 @@ class QueryDict:
             if found:
                 self.__objects__.remove(found)
                 return found
+        raise ItemNotFoundException("Cannot found item")
 
     @lru_cache()
     def values(self, *fields: str):

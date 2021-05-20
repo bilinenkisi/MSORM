@@ -149,14 +149,21 @@ other_operators parameter will probably deprecated  in the newer versions. **kwa
 	model_name.where(OR(field1=value)|OR(field1__not=value2)|OR(field1__notin=value3))
 	
 	model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
-## TARGET FEATURES
+## TARGET FEATURES FOR VERSION 0.0.4a0
  - [x] Added get method
  - [x] Added first method
  - [x] Added count method to Model class
  - [x] Improved QueryDict class's dicts and values method
  - [x] Added dict() and values() method to Model class
  - [x] For dict() and dicts() methods, added depth parameter. (with depth parameter, related tables can be serialize as dictionary)
+ - [x] Added metadata via __init_subclass to make it easier to access the field's value except for foreign field.
+ - [x] Version data changed for better understanding of distributions of msorm.
+ - [x] QueryObject's find, get, remove and pop functions are changed. Now, to find the wanted obj you have to give a lambda function. 
+ Ex: QueryObject.get(lambda x: x.field_name == 1)
+ - [x] if QueryObject's get function can't succeed to find the wanted obj, it will raise ItemNotFound (ItemNotFoundException)
+ - [ ] Still working on automatic model creation from existing databases.
+ - [ ] Operators still aren't deprecated.
+ - [ ] Still working on make_safe function
  - [ ] save system
- - [ ] auto model creator from existing table
  - [ ] Migration Support
 
