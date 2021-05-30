@@ -71,15 +71,18 @@ class OR:
         new_or = cls()
         new_or.value = value + " OR " + othervalue
         return new_or
+
     @classmethod
-    def __from_value(cls,value):
+    def __from_value(cls, value):
         new_or = cls()
         new_or.value = value
         return new_or
+
     def __or__(self, other):
-        return self.__from_values(self.value,other.value)
+        return self.__from_values(self.value, other.value)
+
     def __invert__(self):
-        warnings.warn("Depcreated because of filter kwargs",DeprecationWarning)
+        warnings.warn("Depcreated because of filter kwargs", DeprecationWarning)
         values = ""
         if self.kwargs:
 
@@ -87,8 +90,10 @@ class OR:
                 values += f"{field}!='{value}' OR "
             values = values[:-3]
         return self.__from_value(values)
+
     def __str__(self):
         return self.value
+
 
 # endregion
 # region Fields
@@ -656,3 +661,14 @@ class developers_models:
                 __fields__ = fields if fields else __fields__
                 objs.append(cls(**{k: v for k, v in zip(__fields__, args)}, fields=fields))
             return QueryDict(objs)
+
+
+if __name__ == '__main__':
+    print()
+    for k, v in Field.__dict__.items():
+
+        try:
+            if issubclass(v, field):
+                print(f"Field.{k}(\n")
+        except:
+            pass

@@ -1,0 +1,22 @@
+                                    *-*1.0.4a0*-*
+-Added get method
+-Added first method
+-Added count method to Model class
+-Improved QueryDict class's dicts and values method
+-Added dict() and values() method to Model class
+-For dict() and dicts() methods, added depth parameter. (with depth parameter, related tables can be serialize as dictionary)
+-Added metadata via __init_subclass to make it easier to access the field's value except for foreign field.
+-Version data changed for better understanding of distributions of msorm.
+-QueryObject's find, get, remove and pop functions are changed. Now, to find the wanted obj you have to give a lambda function.
+ Ex: QueryObject.get(lambda x: x.field_name == 1)
+-if QueryObject's get function can't succeed to find the wanted obj, it will raise ItemNotFound (ItemNotFoundException)
+-Operators removed and OR was moved to models.py.
+-Added __safe parameter for model __init\__ function to understand if __init\__ is called by a query or hand
+-type_fields.py renamed as mssql_fields.py
+-All fields were moved to Fields class which is in models.py
+-Added developer usage for field class, now it can be called directly for creating test models
+-Added settings.py
+-With settings.py, added __MFA\__ and __MFL\__ to check if value is suitable for the field
+-Now, all fields except foreign key have produce method to  check if value is suitable for the field.
+-**Added most of the fields of [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) to [msorm](https://github.com/bilinenkisi/msorm)**
+-Changed versioning system to Semantic Versioning
