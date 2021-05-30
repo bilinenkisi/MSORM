@@ -1,10 +1,11 @@
-﻿# Microsoft SQL Server Object Related Mapping
-**MSORM**
+﻿
+# Microsoft SQL Server Object Related Mapping
+##### MSORM
 [msorm](https://github.com/bilinenkisi/msorm) is a basic [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) [Object Related Mapper](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping) for Python3.x versions. With msorm, existing mssql database can be easily mapped with django style model system. It is still an alpha project
 [Click For source code and pre-releases of msorm](https://github.com/bilinenkisi/msorm).
 
 ## Installation
-You can install the [msorm](https://github.com/bilinenkisi/msorm) from [PyPI](https://pypi.org/project/realpython-reader/):
+You can install the [msorm](https://github.com/bilinenkisi/msorm) from [PyPI](https://pypi.org/project/msorm/):
 
     pip install msorm
 
@@ -149,7 +150,7 @@ other_operators parameter will probably deprecated  in the newer versions. **kwa
 	model_name.where(OR(field1=value)|OR(field1__not=value2)|OR(field1__notin=value3))
 	
 	model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
-## TARGET FEATURES FOR VERSION 0.0.4a0
+## TARGET FEATURES FOR VERSION 1.0.4a0
  - [x] Added get method
  - [x] Added first method
  - [x] Added count method to Model class
@@ -161,9 +162,17 @@ other_operators parameter will probably deprecated  in the newer versions. **kwa
  - [x] QueryObject's find, get, remove and pop functions are changed. Now, to find the wanted obj you have to give a lambda function. 
  Ex: QueryObject.get(lambda x: x.field_name == 1)
  - [x] if QueryObject's get function can't succeed to find the wanted obj, it will raise ItemNotFound (ItemNotFoundException)
+ - [x] Operators removed and OR was moved to models.py.
+ - [x] Added __safe parameter for model __init\__ function to understand if __init\__ is called by a query or hand
+ - [x] type_fields.py renamed as mssql_fields.py
+ - [x] All fields were moved to Fields class which is in models.py
+ - [x] Added developer usage for field class, now it can be called directly for creating test models
+ - [x] Added settings.py
+ - [x] With settings.py, added __MFA\__ and __MFL\__ to check if value is suitable for the field 
+ - [x] Now, all fields except foreign key have produce method to  check if value is suitable for the field.
+ - [x] **Added most of the fields of [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) to [msorm](https://github.com/bilinenkisi/msorm)**
+ - [x] Changed versioning system to Semantic Versioning 
  - [ ] Still working on automatic model creation from existing databases.
- - [ ] Operators still aren't deprecated.
- - [ ] Still working on make_safe function
  - [ ] save system
  - [ ] Migration Support
 
