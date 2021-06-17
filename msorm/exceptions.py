@@ -9,7 +9,8 @@ class NotInitializedError(BaseException):
 class ItemNotFoundException(BaseException):
     """:raise when item not found"""
 
-
+class DuplicatedPrimaryKeyException(BaseException):
+    """:raise when there are primaryKey more than one"""
 # endregion
 
 # region Warnings

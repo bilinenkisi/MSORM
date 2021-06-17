@@ -50,6 +50,7 @@ class field:
         if not self.__sub_instance__ and safe:
             warnings.warn("DO NOT FORGET, USING DIRECT field CLASS IS NOT SUITABLE FOR NORMAL USAGE",
                           DeveloperToolsWarning)
+
         self.value = default
         self.null = null
         self.__properties__["null"] = null
