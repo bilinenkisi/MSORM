@@ -2,9 +2,9 @@ import pathlib
 
 from setuptools import setup, find_packages
 
-from msorm import __version__
+from msorm import __version__,__preview_version__,__preview__
 
-VERSION = __version__
+VERSION = __preview_version__ if __preview__ else __version__
 DESCRIPTION = 'ORM support for Mssql in python3'
 # LONG_DESCRIPTION = 'A package inspired by django model system and implemented that system for mssql via using pyodbc'
 HERE = pathlib.Path(__file__).parent
