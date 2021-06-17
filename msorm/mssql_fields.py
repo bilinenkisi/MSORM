@@ -80,11 +80,11 @@ class field:
                       DeveloperToolsWarning)
         return val
 
-    def produce(self, val):
+    def produce(self, val, field="field"):
         if val is None and self.null:
             return val
 
-        return settings.MDC.get(self.__field__, self.__developer_field_produce)(val)
+        return settings.MDC.get(self.__field__, self.__developer_field_produce)(val, field)
 
     def __str__(self):
         return str(self.__value)

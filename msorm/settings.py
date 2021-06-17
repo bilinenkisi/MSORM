@@ -83,106 +83,106 @@ def _limit_check(value, data_type: str):
         raise ValueError(f"value exceeds {data_type}_max value or least than {data_type}_min")
 
 
-def _type_check(value, python_types: tuple):
+def _type_check(value, python_types: tuple, field):
     if isinstance(value, python_types):
         return value
 
     else:
-        raise TypeError(f"Value must be {', '.join([i.__name__ for i in python_types])}")
+        raise TypeError(f"Value of '{field}' field must be {', '.join([i.__name__ for i in python_types])}")
 
 
 class __MFA__:
 
     @staticmethod
-    def bigint(value):
-        return _limit_check(_type_check(value, (int,)), "bigint")
+    def bigint(value, field):
+        return _limit_check(_type_check(value, (int,), field), "bigint")
 
     @staticmethod
-    def int(value):
-        return _limit_check(_type_check(value, (int,)), "int")
+    def int(value, field):
+        return _limit_check(_type_check(value, (int,), field), "int")
 
     @staticmethod
-    def smallint(value):
-        return _limit_check(_type_check(value, (int,)), "smallint")
+    def smallint(value, field):
+        return _limit_check(_type_check(value, (int,), field), "smallint")
 
     @staticmethod
-    def bit(value):
-        return _limit_check(_type_check(value, (bool, int, float)), "bit")
+    def bit(value, field):
+        return _limit_check(_type_check(value, (bool, int, float), field), "bit")
 
     @staticmethod
-    def tinyint(value):
-        return _limit_check(_type_check(value, (int,)), "tinyint")
+    def tinyint(value, field):
+        return _limit_check(_type_check(value, (int,), field), "tinyint")
 
     @staticmethod
     def decimal(value):
-        return _limit_check(_type_check(value, (float,)), "decimal")
+        return _limit_check(_type_check(value, (float,), field), "decimal")
 
     @staticmethod
-    def numeric(value):
-        return _limit_check(_type_check(value, (float,)), "numeric")
+    def numeric(value, field):
+        return _limit_check(_type_check(value, (float,), field), "numeric")
 
     @staticmethod
-    def money(value):
-        return _limit_check(_type_check(value, (float,)), "money")
+    def money(value, field):
+        return _limit_check(_type_check(value, (float,), field), "money")
 
     @staticmethod
-    def smallmoney(value):
-        return _limit_check(_type_check(value, (float,)), "smallmoney")
+    def smallmoney(value, field):
+        return _limit_check(_type_check(value, (float,), field), "smallmoney")
 
     @staticmethod
-    def float(value):
-        return _limit_check(_type_check(value, (float,)), "float")
+    def float(value, field):
+        return _limit_check(_type_check(value, (float,), field), "float")
 
     @staticmethod
-    def real(value):
-        return _limit_check(_type_check(value, (float,)), "real")
+    def real(value, field):
+        return _limit_check(_type_check(value, (float,), field), "real")
 
     @staticmethod
-    def char(value):
-        return _limit_check(_type_check(value, (str,)), "char")
+    def char(value, field):
+        return _limit_check(_type_check(value, (str,), field), "char")
 
     @staticmethod
-    def nchar(value):
-        return _limit_check(_type_check(value, (str,)), "nchar")
+    def nchar(value, field):
+        return _limit_check(_type_check(value, (str,), field), "nchar")
 
     @staticmethod
-    def varchar(value):
-        return _limit_check(_type_check(value, (str,)), "varchar")
+    def varchar(value, field):
+        return _limit_check(_type_check(value, (str,), field), "varchar")
 
     @staticmethod
-    def nvarchar(value):
-        return _limit_check(_type_check(value, (str,)), "nvarchar")
+    def nvarchar(value, field):
+        return _limit_check(_type_check(value, (str,), field), "nvarchar")
 
     @staticmethod
-    def text(value):
-        return _limit_check(_type_check(value, (str,)), "text")
+    def text(value, field):
+        return _limit_check(_type_check(value, (str,), field), "text")
 
     @staticmethod
-    def ntext(value):
-        return _limit_check(_type_check(value, (str,)), "ntext")
+    def ntext(value, field):
+        return _limit_check(_type_check(value, (str,), field), "ntext")
 
     @staticmethod
-    def binary(value):
-        return pyodbc.Binary(_limit_check(_type_check(value, (bytes,)), "binary"))
+    def binary(value, field):
+        return pyodbc.Binary(_limit_check(_type_check(value, (bytes,), field), "binary"))
 
     @staticmethod
-    def nbinary(value):
-        return pyodbc.Binary(_limit_check(_type_check(value, (bytes,)), "nbinary"))
+    def nbinary(value, field):
+        return pyodbc.Binary(_limit_check(_type_check(value, (bytes,), field), "nbinary"))
 
     @staticmethod
-    def image(value):
-        return pyodbc.Binary(_limit_check(_type_check(value, (bytes,)), "image"))
+    def image(value, field):
+        return pyodbc.Binary(_limit_check(_type_check(value, (bytes,), field), "image"))
 
     @staticmethod
-    def date(value):
+    def date(value, field):
         return _type_check(value, (datetime.date,))
 
     @staticmethod
-    def datetime(value):
+    def datetime(value, field):
         return _type_check(value, (datetime.datetime,))
 
     @staticmethod
-    def smalldatetime(value):
+    def smalldatetime(value, field):
         return _type_check(value, (datetime.time,))
 
 

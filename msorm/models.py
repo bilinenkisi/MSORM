@@ -3,15 +3,14 @@ from __future__ import annotations
 import inspect
 import sys
 import warnings
-from functools import lru_cache
 from typing import List
+
 import pyodbc
 
 from msorm import mssql_fields, settings
 from msorm.exceptions import NotInitializedError, ItemNotFoundException, \
     DuplicatedPrimaryKeyException
 from msorm.mssql_fields import field
-
 
 connection = None
 __connected__ = False
@@ -273,8 +272,10 @@ class Model:
     PrimaryKey = None
 
     def __safe__init__(self, **kwargs):
-        self.__fields__ = kwargs.get("fields") if kwargs.get("fields") else tuple(
-            name for name in kwargs.keys() if isinstance(self.__metadata__.get("name"), mssql_fields.field))
+        __metadata__ = self.__metadata__.copy()
+        __metadata__.pop(self.PrimaryKey)
+        self.__fields__ = kwargs.get("fields") if kwargs.get("fields") else __metadata__.keys()
+
         for field in self.__fields__:
 
             if isinstance(getattr(self, field), Field.foreignKey):
@@ -284,11 +285,12 @@ class Model:
                                                              name=fk.get_name(),
                                                              safe=False))
             else:
-                setattr(self, field, self.__metadata__.get(field).produce(kwargs[field]))
+                setattr(self, field, self.__metadata__.get(field).produce(kwargs[field],field))
 
     def __unsafe__init(self, **kwargs):
-        self.__fields__ = kwargs.get("fields") if kwargs.get("fields") else tuple(
-            name for name in kwargs.keys() if isinstance(getattr(self, name, None), mssql_fields.field))
+        __metadata__ = self.__metadata__.copy()
+        # __metadata__.pop(self.PrimaryKey)
+        self.__fields__ = kwargs.get("fields") if kwargs.get("fields") else __metadata__.keys()
         for field in self.__fields__:
 
             if isinstance(getattr(self, field), Field.foreignKey):
@@ -298,7 +300,6 @@ class Model:
                                                      safe=False))
             else:
                 setattr(self, field, kwargs.get(field))
-
 
     def __init__(self, **kwargs):
         """
@@ -330,8 +331,6 @@ class Model:
         cls.__metadata__ = metadata
         cls.__subclass__ = True
 
-
-
     def dict(self, *fields: str, depth=0):
         """
 
@@ -342,7 +341,7 @@ class Model:
         :return: A tuple of dictionary collections of fields and their values
         """
 
-        fields = fields if fields else getattr(self, "__fields__", None)
+        fields = fields if fields else self.__metadata__.keys()
         _dict = {
         }
         if depth == 0:
@@ -368,7 +367,6 @@ class Model:
         else:
             raise ValueError("depth cannot be less than 0")
 
-
     def values(self, *fields: str):
         """
 
@@ -390,9 +388,6 @@ class Model:
     @classmethod
     @extras.check_init
     def first(cls, fields=None):
-
-        fields = fields
-
         cursor = connection.cursor()
 
         text = 'SELECT TOP 1 {fields} FROM {table}'.format(
@@ -424,7 +419,7 @@ class Model:
         cursor.execute(text)
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
-        return (cls(**{k: getattr(args,k) for k in __fields__}, fields=fields, __safe=False))
+        return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
 
         # raise NotImplementedError
 
@@ -451,27 +446,29 @@ class Model:
         __fields__ = fields if fields else cls.__metadata__.keys()
 
         for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args,k) for k in __fields__}, fields=fields, __safe=False))
+            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
 
         return QueryDict(objs)
+
     @classmethod
     @extras.check_init
     def all(cls, *fields):
+        __fields__ = fields if fields else cls.__metadata__.keys()
         cursor = connection.cursor()
 
         text = 'SELECT {fields} FROM {table}'.format(fields=str(f'{", ".join(fields)}' if fields else "*"),
                                                      table="dbo." + cls.__table_name__)
         cursor.execute(text)
         objs = []
-        __fields__ = fields if fields else cls.__metadata__.keys()
+
         for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args,k) for k in __fields__}, fields=fields, __safe=False))
+            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
 
         return QueryDict(objs)
 
     @classmethod
     @extras.check_init
-    def count(cls,*args,**kwargs):
+    def count(cls, *args, **kwargs):
         cursor = connection.cursor()
         if kwargs or kwargs:
             kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
@@ -486,6 +483,21 @@ class Model:
             )
         cursor.execute(text)
         return cursor.fetchone()[0]
+
+    def delete(self):
+        cursor = connection.cursor()
+        __metadata__ = self.__metadata__.copy()
+        __metadata__.pop(self.PrimaryKey, None)
+        self.primaryKey_value = getattr(self, self.PrimaryKey)
+
+        text = f"DELETE FROM {self.__table_name__} WHERE {self.PrimaryKey}='{self.primaryKey_value}' "
+
+        result = cursor.execute(text)
+        if result.rowcount <= 0:
+            raise RuntimeError(f""""{text}" might be broken""")
+        connection.commit()
+
+
     def update(self):
         """
         Direct call for this function is not necessary.
@@ -494,41 +506,49 @@ class Model:
         cursor = connection.cursor()
         __metadata__ = self.__metadata__.copy()
         __metadata__.pop(self.PrimaryKey, None)
-        self.primaryKey_value = getattr(self,self.PrimaryKey)
+        self.primaryKey_value = getattr(self, self.PrimaryKey)
         fields = __metadata__.keys()
         values = [f"'{str(getattr(self, i).value)}'" if isinstance(getattr(self, i),
                                                                    Field.foreignKey) else f"'{str(getattr(self, i))}'"
                   for i in vars(self) if i in fields]
         text = 'UPDATE {table} SET  {set} WHERE {primarykey} = {primarykey_value} '.format(
-            set=str(", ".join([f"{k}={v}" for k,v in zip(fields,values)])),
-            table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey, primarykey_value=self.primaryKey_value)
+            set=str(", ".join([f"{k}={v}" for k, v in zip(fields, values)])),
+            table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey,
+            primarykey_value=self.primaryKey_value)
         cursor.execute(text)
         connection.commit()
-    @extras.check_init
+
     def save(self):
         """
         if primaryKey is not None, then call update method. if it is None, then run that function
         :return: None
         """
-        if getattr(self,self.PrimaryKey, None):
+        primarykey = getattr(self, self.PrimaryKey, None)
+        if not isinstance(primarykey, Field.primaryKey):
+
             self.update()
             return
         cursor = connection.cursor()
         __metadata__ = self.__metadata__.copy()
-        __metadata__.pop(self.PrimaryKey,None)
+        __metadata__.pop(self.PrimaryKey, None)
         fields = __metadata__.keys()
-        values = [f"'{str(getattr(self,i).value)}'" if isinstance(getattr(self,i), Field.foreignKey) else f"'{str(getattr(self, i))}'"for i in vars(self) if i in fields ]
+        values = [f"'{str(getattr(self, i).value)}'" if isinstance(getattr(self, i),
+                                                                   Field.foreignKey) else f"'{str(getattr(self, i))}'"
+                  for i in vars(self) if i in fields]
         text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
             fields=str(f'{", ".join(fields)}'),
-            table="dbo." + self.__table_name__, values=str(", ".join(values)),primarykey=self.PrimaryKey)
+            table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey)
+        print(text)
         cursor.execute(text)
         connection.commit()
 
     def __iter__(self):
         for field in self.__fields__:
             yield getattr(self, field, None)
+
     def __repr__(self):
-        return f'{self.__table_name__}({", ".join([f"{k}={v}" for k,v in self.__dict__.items() if not k == "__fields__"])})'
+        return f'{self.__table_name__}({", ".join([f"{k}={v}" for k, v in self.__dict__.items() if not k == "__fields__"])})'
+
 
 class QueryDict:
     __model__ = Model
@@ -545,7 +565,6 @@ class QueryDict:
 
     def __find(self, first, second):
         return first == second
-
 
     def find(self, func):
         founds = []
@@ -577,7 +596,6 @@ class QueryDict:
                 return found
         raise ItemNotFoundException("Cannot found item")
 
-
     def values(self, *fields: str):
         """
 
@@ -592,7 +610,6 @@ class QueryDict:
 
         return tuple(_list)
 
-
     def dicts(self, *fields: str, depth=0):
         """
 
@@ -605,7 +622,6 @@ class QueryDict:
 
         if len(self.__objects__) == 0:
             return [{}]
-        # fields = fields if fields else getattr(self.__objects__[0], "__fields__", None)
         _list = []
 
         for obj in self.__objects__:
@@ -720,14 +736,3 @@ class developers_models:
                 __fields__ = fields if fields else __fields__
                 objs.append(cls(**{k: v for k, v in zip(__fields__, args)}, fields=fields))
             return QueryDict(objs)
-
-
-if __name__ == '__main__':
-    print()
-    for k, v in Field.__dict__.items():
-
-        try:
-            if issubclass(v, field):
-                print(f"Field.{k}(\n")
-        except:
-            pass

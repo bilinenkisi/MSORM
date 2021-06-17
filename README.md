@@ -267,8 +267,8 @@ model_name_instance1.save()
  - [x] Now, all fields except foreign key have produce method to  check if value is suitable for the field.
  - [x] **Added most of the fields of [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) to [msorm](https://github.com/bilinenkisi/msorm)**
  - [x] Changed versioning system to Semantic Versioning
- - [x] Added save&update methods to Model class 
+ - [x] Added save & update & delete methods to Model class 
  - [x] Made better where, get, first and count methods **17.06.2021**
- - [ ] Still working on automatic model creation from existing databases.
- - [ ] Migration Support
+ - [x] Added automatic model creation from existing databases.
+ - [ ] Migration Support is Suspended for v1.0.4a0
 

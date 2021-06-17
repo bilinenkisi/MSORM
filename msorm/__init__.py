@@ -1,5 +1,5 @@
 from msorm import models
-__preview__ = True
+__preview__ = False
 __MAJOR__ = 1
 __MINOR__ = 0
 __MAINTENANCE__ = 4
