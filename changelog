@@ -20,3 +20,4 @@
 -Now, all fields except foreign key have produce method to  check if value is suitable for the field.
 -**Added most of the fields of [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) to [msorm](https://github.com/bilinenkisi/msorm)**
 -Changed versioning system to Semantic Versioning
+-Added save&update methods to Model class

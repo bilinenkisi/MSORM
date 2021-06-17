@@ -83,13 +83,15 @@ model = Model # the class of the foreign table
 value = 1 # pk of the foreign table
 name = "testTableID" # if the field's name is not same with class of the table set name as field's name
 Field.foreignKey(model, value, name)
+#primaryKey field has to be used, and there can be only one primaryKey for a table
+Field.primaryKey()
 ```
 ### CREATING THE MODELS
 ```Python
 from msorm import models
 from msorm.models import Field
 class Server(models.Model):
-    serverID = Field.int()
+    serverID = Field.primaryKey()
     discordSystemID = Field.nvarchar(length=128)
     languageID = Field.int()
     active = Field.bit()
@@ -106,7 +108,7 @@ class Server(models.Model):
 
 
 class Announce(models.Model):
-    announceID = Field.int()
+    announceID = Field.primaryKey()
     serverID = Field.foreignKey(model=Server, name="serverID")
     channelID = Field.nvarchar(length=64)
     loopHours = Field.int()
@@ -170,7 +172,7 @@ with filters where(*args,**kwargs) method can be used like these:
 ````Python
 from msorm.models import Model,Field
 class model_name(Model):
-    field1 = Field.int()
+    field1 = Field.primaryKey()
 
     field2 = Field.int()
 
@@ -198,7 +200,7 @@ other_operators parameter will probably deprecated  in the newer versions. **kwa
 ````Python
 from msorm.models import Model,Field, OR
 class model_name(Model):
-    field1 = Field.int()
+    field1 = Field.primaryKey()
 
     field2 = Field.int()
 
@@ -220,6 +222,29 @@ model_name.where(OR(field1=value)|OR(field1__not=value2)|OR(field1__notin=value3
 	
 model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
 ````
+#### HOW TO USE SAVE & UPDATE METHOD
+save & update method can be used only after model's initialization.
+**You don't have to use directly update method**
+when save method is called, if the primaryKey field of the model's instance is None, save method execute an **INSERT** sql but if it is not None then save method will call update method and it will execute an **UPDATE** sql
+````Python
+from msorm.models import Model,Field
+class  model_name(Model): 
+	field1 = Field.primaryKey() 
+	field2 = Field.int() 
+	field3 = Field.int()
+
+#save method for saving
+model_name_instance1 = model_name(field1=value1, field2=value2, field3=value3)
+#it will execute "INSERT" sql
+model_name_instance1.save()
+
+#save method for updating
+model_name_instance2 = model_name.get(field2__gt=1, ...)
+#it will execute "UPDATE"
+model_name_instance1.save() 
+````
+
+
 ## TARGET FEATURES FOR VERSION 1.0.4a0
  - [x] Added get method
  - [x] Added first method
@@ -241,8 +266,9 @@ model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
  - [x] With settings.py, added __MFA\__ and __MFL\__ to check if value is suitable for the field 
  - [x] Now, all fields except foreign key have produce method to  check if value is suitable for the field.
  - [x] **Added most of the fields of [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) to [msorm](https://github.com/bilinenkisi/msorm)**
- - [x] Changed versioning system to Semantic Versioning 
+ - [x] Changed versioning system to Semantic Versioning
+ - [x] Added save&update methods to Model class 
+ - [x] Made better where, get, first and count methods **17.06.2021**
  - [ ] Still working on automatic model creation from existing databases.
- - [ ] save system
  - [ ] Migration Support
 
