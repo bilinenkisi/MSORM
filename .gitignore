@@ -8,6 +8,7 @@ __pycache__/
 .vscode
 secret.json
 test.py
+test_models.py
 # Distribution / packaging
 .Python
 build/
