@@ -24,7 +24,7 @@ setup(
     long_description_content_type="text/markdown",
 
     packages=find_packages(),
-    install_requires=["pyodbc"],  # add any additional packages that
+    install_requires=["pyodbc","tqdm"],  # add any additional packages that
     # needs to be installed along with your package. Eg: 'caer'
 
     keywords=['python', 'MSORM', "msorm", "mssql-python", "mssql orm in python"],

@@ -419,8 +419,9 @@ class Model:
         cursor.execute(text)
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
-        return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
-
+        if args:
+            return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
+        
         # raise NotImplementedError
 
     @classmethod
