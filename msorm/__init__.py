@@ -1,7 +1,7 @@
 from msorm import models
 __preview__ = False
 __MAJOR__ = 1
-__MINOR__ = 0
+__MINOR__ = 1
 __MAINTENANCE__ = 4
 print("se")
 __preview_version__ = f"{__MAJOR__}.{__MINOR__}.{__MAINTENANCE__}-rc2"
