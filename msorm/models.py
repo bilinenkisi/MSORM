@@ -539,9 +539,10 @@ class Model:
         text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
             fields=str(f'{", ".join(fields)}'),
             table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey)
-        print(text)
         cursor.execute(text)
         connection.commit()
+
+
 
     def __iter__(self):
         for field in self.__fields__:

@@ -66,7 +66,7 @@ models.init("{ip}", "{database}", "{username}", "{password}")
         if not primarykey:
             tables[table]["__primaryKey__"] = __primaryKey__
 
-
+    for table in tqdm(table_names):
         for fk in crsr.foreignKeys(table=table):
             table_scores[table]+=1
             pk_column_name = fk.pkcolumn_name
