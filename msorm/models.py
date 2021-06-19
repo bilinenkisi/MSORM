@@ -419,8 +419,9 @@ class Model:
         cursor.execute(text)
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
-        return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
-
+        if args:
+            return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
+        
         # raise NotImplementedError
 
     @classmethod
@@ -538,9 +539,10 @@ class Model:
         text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
             fields=str(f'{", ".join(fields)}'),
             table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey)
-        print(text)
         cursor.execute(text)
         connection.commit()
+
+
 
     def __iter__(self):
         for field in self.__fields__:

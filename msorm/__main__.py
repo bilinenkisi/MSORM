@@ -1,5 +1,4 @@
 import argparse
-import json
 import sys
 
 from tqdm import tqdm
@@ -8,7 +7,6 @@ from msorm import models
 
 
 def init(*args):
-
     if len(args) >= 1:
         parser = argparse.ArgumentParser(description='Argparse Test script')
 
@@ -16,7 +14,7 @@ def init(*args):
         parser.add_argument("-db", help="database name")
         parser.add_argument("-u", help="username")
         parser.add_argument("-p", help="password")
-        parser.add_argument("-f", help="file name",default="models.py")
+        parser.add_argument("-f", help="file name", default="models.py")
         args_ = parser.parse_args(list(args))
         models.init(args_.ip, args_.db, args_.u, args_.p)
         file_name = args_.f
@@ -31,7 +29,8 @@ def init(*args):
             password = input("Please enter the password: ")
             file_name = input("Please enter the output file name[Default: models.py]: ")
             file_name = file_name if file_name != "" else "models.py"
-            print(f"database ip: {ip}\ndatabase name: {database}\n database username: {username}\n password: {password}")
+            print(
+                f"database ip: {ip}\ndatabase name: {database}\n database username: {username}\n password: {password}")
             answer = input("Are all values are valid?[Y/n]: ")
             if answer.lower() == 'n':
                 print("Please re-enter required fields!")
@@ -41,15 +40,17 @@ def init(*args):
         models.init(ip, database, username, password)
     intend = "    "
     models_py = \
-f"""from msorm import models
+        f"""from msorm import models
 from msorm.models import Field
 models.init("{ip}", "{database}", "{username}", "{password}")
 """
     crsr = models.connection.cursor()
     table_names = [x[2] for x in crsr.tables(tableType='TABLE')]
     table_names.remove("sysdiagrams")
-    tables = {k:{} for k in table_names}
+    tables = {k: {} for k in table_names}
+    table_scores = {}
     for table in tqdm(table_names):
+        table_scores[table] = 0
         primarykey = False
         for row in crsr.columns(table=table):
             if row.type_name == "int identity":
@@ -65,17 +66,29 @@ models.init("{ip}", "{database}", "{username}", "{password}")
         if not primarykey:
             tables[table]["__primaryKey__"] = __primaryKey__
 
-    for last_table,fields in tables.items():
-        models_py+=f"\n\nclass {last_table}(models.Model):"
+
+        for fk in crsr.foreignKeys(table=table):
+            table_scores[table]+=1
+            pk_column_name = fk.pkcolumn_name
+            fk_table_name = fk.fktable_name
+            tables[fk_table_name][pk_column_name] = f"Field.foreignKey(model={fk.pktable_name},name='{pk_column_name}')"
+    table_scores = [[k,v] for k,v in table_scores.items()]
+    table_scores.sort(key=lambda x: x[1],reverse=True)
+    table_scores = [t[0] for t in table_scores]
+    tables = {k:tables[k] for k in table_scores}
+
+    for last_table, fields in tables.items():
+        models_py += f"\n\nclass {last_table}(models.Model):"
         for field, val in fields.items():
             if field == "__primaryKey__" and val == False:
-                models_py+=f"\n{intend}{field} = False"
+                models_py += f"\n{intend}{field} = False"
                 continue
-            models_py+=f"\n{intend}{field} = {val}"
-    with open(file_name,"w",encoding="utf-8") as f:
+            models_py += f"\n{intend}{field} = {val}"
+    with open(file_name, "w", encoding="utf-8") as f:
         f.write(models_py)
     # with open("secrets2.json", "w") as fi:
     #     json.dump(tables,fi,indent=2)
+
 
 processes = {"init": init}
 if __name__ == '__main__':
