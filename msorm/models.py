@@ -26,7 +26,7 @@ def init(server, database, username, password):
     """
     global connection
     connection = pyodbc.connect('Driver={SQL Server};'
-                                f'Server={server}4;'
+                                f'Server={server};'
                                 f'Database={database};'
                                 f'UID={username};'
                                 f'PWD={password};')
@@ -498,7 +498,6 @@ class Model:
             raise RuntimeError(f""""{text}" might be broken""")
         connection.commit()
 
-
     def update(self):
         """
         Direct call for this function is not necessary.
@@ -509,14 +508,14 @@ class Model:
         __metadata__.pop(self.PrimaryKey, None)
         self.primaryKey_value = getattr(self, self.PrimaryKey)
         fields = __metadata__.keys()
-        values = [f"'{str(getattr(self, i).value)}'" if isinstance(getattr(self, i),
-                                                                   Field.foreignKey) else f"'{str(getattr(self, i))}'"
+        values = [getattr(self, i).value if isinstance(getattr(self, i),
+                                                       Field.foreignKey) else getattr(self, i)
                   for i in vars(self) if i in fields]
         text = 'UPDATE {table} SET  {set} WHERE {primarykey} = {primarykey_value} '.format(
-            set=str(", ".join([f"{k}={v}" for k, v in zip(fields, values)])),
-            table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey,
+            set=str(", ".join([f"{k}=?" for k, v in zip(fields, values)])),
+            table="dbo." + self.__table_name__, primarykey=self.PrimaryKey,
             primarykey_value=self.primaryKey_value)
-        cursor.execute(text)
+        cursor.execute(text, *tuple(values))
         connection.commit()
 
     def save(self):
@@ -526,23 +525,22 @@ class Model:
         """
         primarykey = getattr(self, self.PrimaryKey, None)
         if not isinstance(primarykey, Field.primaryKey):
-
             self.update()
             return
         cursor = connection.cursor()
         __metadata__ = self.__metadata__.copy()
         __metadata__.pop(self.PrimaryKey, None)
         fields = __metadata__.keys()
-        values = [f"'{str(getattr(self, i).value)}'" if isinstance(getattr(self, i),
-                                                                   Field.foreignKey) else f"'{str(getattr(self, i))}'"
+        values = [getattr(self, i).value if isinstance(getattr(self, i),
+                                                       Field.foreignKey) else getattr(self, i)
                   for i in vars(self) if i in fields]
         text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
             fields=str(f'{", ".join(fields)}'),
-            table="dbo." + self.__table_name__, values=str(", ".join(values)), primarykey=self.PrimaryKey)
-        cursor.execute(text)
+            table="dbo." + self.__table_name__,
+            values=str(", ".join(["?" for i in range(len(values))])),
+            primarykey=self.PrimaryKey)
+        cursor.execute(text, *tuple(values))
         connection.commit()
-
-
 
     def __iter__(self):
         for field in self.__fields__:

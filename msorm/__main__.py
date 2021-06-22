@@ -1,6 +1,6 @@
 import argparse
 import sys
-
+import json
 from tqdm import tqdm
 
 from msorm import models
@@ -86,8 +86,8 @@ models.init("{ip}", "{database}", "{username}", "{password}")
             models_py += f"\n{intend}{field} = {val}"
     with open(file_name, "w", encoding="utf-8") as f:
         f.write(models_py)
-    # with open("secrets2.json", "w") as fi:
-    #     json.dump(tables,fi,indent=2)
+    with open("secrets2.json", "w") as fi:
+        json.dump(tables,fi,indent=2)
 
 
 processes = {"init": init}
