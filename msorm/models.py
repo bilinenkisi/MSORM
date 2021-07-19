@@ -16,7 +16,7 @@ connection = None
 __connected__ = False
 
 
-def init(server, database, username, password):
+def init(server, database, username, password,fast_executemany = True):
     """
     :param server: Server Ip or Server Name
     :param database: Database Name
@@ -29,7 +29,7 @@ def init(server, database, username, password):
                                 f'Server={server};'
                                 f'Database={database};'
                                 f'UID={username};'
-                                f'PWD={password};')
+                                f'PWD={password};',fast_executemany=fast_executemany)
     global __connected__
     __connected__ = True
     # if not connection:
@@ -274,32 +274,46 @@ class Model:
     def __safe__init__(self, **kwargs):
         __metadata__ = self.__metadata__.copy()
         __metadata__.pop(self.PrimaryKey)
-        self.__fields__ = kwargs.get("fields") if kwargs.get("fields") else __metadata__.keys()
+        self.__fields__ = __metadata__.keys()
 
         for field in self.__fields__:
 
             if isinstance(getattr(self, field), Field.foreignKey):
                 fk = getattr(self, field)
-                setattr(self, field,
-                        self.__metadata__.get(field).get_new(value=kwargs[field], model=fk.get_model(),
-                                                             name=fk.get_name(),
-                                                             safe=False))
+                if field in kwargs:
+                    setattr(self, field,
+                            self.__metadata__.get(field).get_new(value=kwargs[field], model=fk.get_model(),
+                                                                 name=fk.get_name(),
+                                                                 safe=False))
+                else:
+                    setattr(self, field, None)
             else:
-                setattr(self, field, self.__metadata__.get(field).produce(kwargs[field],field))
+
+                if field in kwargs:
+                    setattr(self, field, self.__metadata__.get(field).produce(kwargs[field], field))
+                else:
+                    setattr(self, field, None)
 
     def __unsafe__init(self, **kwargs):
         __metadata__ = self.__metadata__.copy()
         # __metadata__.pop(self.PrimaryKey)
-        self.__fields__ = kwargs.get("fields") if kwargs.get("fields") else __metadata__.keys()
+        self.__fields__ = __metadata__.keys()
         for field in self.__fields__:
 
             if isinstance(getattr(self, field), Field.foreignKey):
                 fk = getattr(self, field)
-                setattr(self, field,
-                        getattr(self, field).get_new(value=kwargs[field], model=fk.get_model(), name=fk.get_name(),
-                                                     safe=False))
+                if field in kwargs:
+                    setattr(self, field,
+                            getattr(self, field).get_new(value=kwargs[field], model=fk.get_model(), name=fk.get_name(),
+                                                         safe=False))
+                else:
+                    setattr(self, field, None)
             else:
-                setattr(self, field, kwargs.get(field))
+                if field in kwargs:
+
+                    setattr(self, field, kwargs.get(field))
+                else:
+                    setattr(self, field, None)
 
     def __init__(self, **kwargs):
         """
@@ -396,7 +410,8 @@ class Model:
         cursor.execute(text)
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
-        return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
+        cursor.close()
+        return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
 
     @classmethod
     @extras.check_init
@@ -419,9 +434,11 @@ class Model:
         cursor.execute(text)
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
-        if args:
-            return (cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
+        cursor.close()
         
+        if args:
+            return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+
         # raise NotImplementedError
 
     @classmethod
@@ -447,8 +464,9 @@ class Model:
         __fields__ = fields if fields else cls.__metadata__.keys()
 
         for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
-
+            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+        cursor.close()
+        
         return QueryDict(objs)
 
     @classmethod
@@ -463,7 +481,8 @@ class Model:
         objs = []
 
         for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, fields=fields, __safe=False))
+            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+        cursor.close()
 
         return QueryDict(objs)
 
@@ -483,7 +502,10 @@ class Model:
                 table="dbo." + cls.__table_name__
             )
         cursor.execute(text)
-        return cursor.fetchone()[0]
+        r_val = cursor.fetchone()[0]
+        cursor.close()
+        
+        return r_val
 
     def delete(self):
         cursor = connection.cursor()
@@ -497,6 +519,7 @@ class Model:
         if result.rowcount <= 0:
             raise RuntimeError(f""""{text}" might be broken""")
         connection.commit()
+        cursor.close()
 
     def update(self):
         """
@@ -517,6 +540,7 @@ class Model:
             primarykey_value=self.primaryKey_value)
         cursor.execute(text, *tuple(values))
         connection.commit()
+        cursor.close()
 
     def save(self):
         """
@@ -541,6 +565,7 @@ class Model:
             primarykey=self.PrimaryKey)
         cursor.execute(text, *tuple(values))
         connection.commit()
+        cursor.close()
 
     def __iter__(self):
         for field in self.__fields__:
