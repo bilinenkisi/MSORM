@@ -344,7 +344,22 @@ class Model:
         cls.__table_name__ = cls.__name__
         cls.__metadata__ = metadata
         cls.__subclass__ = True
+    def set(self,**kwargs):
+        __metadata__ = self.__metadata__.copy()
+        for field in kwargs:
+  
+            if isinstance(getattr(self, field), Field.foreignKey):
+                fk = getattr(self, field)
+                
+                setattr(self, field,
+                            self.__metadata__.get(field).get_new(value=kwargs[field], model=fk.get_model(),
+                                                                 name=fk.get_name(),
+                                                                 safe=False))
+                
+            else:
 
+                setattr(self, field, self.__metadata__.get(field).produce(kwargs[field], field))
+        return self
     def dict(self, *fields: str, depth=0):
         """
 
