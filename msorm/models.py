@@ -635,8 +635,13 @@ class Model:
             values=str(", ".join(["?" for i in range(len(values))])),
             primarykey=self.PrimaryKey)
         cursor.execute(text, *tuple(values))
+
+
+        primarykey = cursor.fetchone()[0]
+        setattr(self, self.PrimaryKey, primarykey)
         connection.commit()
         cursor.close()
+        return self
 
     def __iter__(self):
         for field in self.__fields__:
