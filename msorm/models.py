@@ -483,6 +483,62 @@ class Model:
         cursor.close()
         
         return QueryDict(objs)
+    @classmethod
+    @extras.check_init
+    def n_get(cls, *args, **kwargs):
+        if not kwargs and not args:
+            raise ValueError("you must provide at least one key and one value")
+        fields = kwargs.get("fields")
+
+        if fields: del kwargs["fields"]
+
+        cursor = connection.cursor()
+        
+        names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
+        args = " ".join([str(arg) for arg in args])
+        text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
+            fields=str(f'{", ".join(fields)}' if fields else "*"),
+            table="dbo." + cls.__table_name__,
+            kwargs=names,
+            args=args)
+        
+        cursor.execute(text,*tuple(kwargs.values()))
+        __fields__ = fields if fields else cls.__metadata__.keys()
+        args = (cursor.fetchone())
+        cursor.close()
+        
+        if args:
+            return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+
+        # raise NotImplementedError
+
+    @classmethod
+    @extras.check_init
+    def n_where(cls, *args, **kwargs):
+        if not kwargs and not args:
+            raise ValueError("you must provide at least one key and one value")
+        fields = kwargs.get("fields")
+
+        if fields: del kwargs["fields"]
+
+        cursor = connection.cursor()
+
+        names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
+        args = " ".join([str(arg) for arg in args])
+        text = 'SELECT {fields} FROM {table} WHERE ({kwargs} {args})'.format(
+            fields=str(f'{", ".join(fields)}' if fields else "*"),
+            table="dbo." + cls.__table_name__,
+            kwargs=names,
+            args=args)
+        cursor.execute(text,*kwargs.values())
+        objs = []
+        __fields__ = fields if fields else cls.__metadata__.keys()
+
+        for args in cursor.fetchall():
+            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+        cursor.close()
+        
+        return QueryDict(objs)
 
     @classmethod
     @extras.check_init

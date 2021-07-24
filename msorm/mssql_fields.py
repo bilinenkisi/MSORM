@@ -45,7 +45,18 @@ class field:
             if filter:
                 return name + filter + __filtersf__[item](value)
         return name + "=" + f"'{value}'"
-
+    @staticmethod
+    def n_find_filter(field, value):
+        filed_args = field.split("__")
+        lenght = len(filed_args)
+        if lenght > 2:
+            raise ValueError(f"{field} field cannot be found in the Model")
+        name = filed_args.pop(0)
+        for item in filed_args:
+            filter = __filters__.get(item)
+            if filter:
+                return name + filter + "?"
+        return name + "=" + "?"
     def __init__(self, default=None, safe=True, null=True):
         if not self.__sub_instance__ and safe:
             warnings.warn("DO NOT FORGET, USING DIRECT field CLASS IS NOT SUITABLE FOR NORMAL USAGE",
