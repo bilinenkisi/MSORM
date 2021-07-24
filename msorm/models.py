@@ -502,7 +502,7 @@ class Model:
             kwargs=names,
             args=args)
         
-        cursor.execute(text,*tuple(kwargs.values()))
+        cursor.execute(text,list(kwargs.values()))
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
         cursor.close()
