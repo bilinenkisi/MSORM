@@ -5,6 +5,10 @@ from tqdm import tqdm
 
 from msorm import models
 
+HELP = f"""MSORM (Microsoft Sql Server Object Related Mapper)
+Commands:
+\tinit: To initialize a new model file
+\thelp: To get help"""
 
 def init(*args):
     if len(args) >= 1:
@@ -41,7 +45,6 @@ def init(*args):
     intend = "    "
     models_py = \
         f"""from msorm import models
-from msorm.models import Field
 models.init("{ip}", "{database}", "{username}", "{password}")
 """
     crsr = models.connection.cursor()
@@ -55,14 +58,14 @@ models.init("{ip}", "{database}", "{username}", "{password}")
         for row in crsr.columns(table=table):
             if row.type_name == "int identity":
                 primarykey = True
-                type_name = "primaryKey"
+                type_name = "primarykey"
             else:
                 type_name = row.type_name
 
             is_nullable = True if row.is_nullable == "YES" else False
             __primaryKey__ = False
 
-            tables[table][row.column_name] = f"Field.{type_name}(null={is_nullable})"
+            tables[table][row.column_name] = f"models.{type_name}(null={is_nullable})"
         if not primarykey:
             tables[table]["__primaryKey__"] = __primaryKey__
 
@@ -71,7 +74,7 @@ models.init("{ip}", "{database}", "{username}", "{password}")
             table_scores[table]+=1
             pk_column_name = fk.pkcolumn_name
             fk_table_name = fk.fktable_name
-            tables[fk_table_name][pk_column_name] = f"Field.foreignKey(model={fk.pktable_name},name='{pk_column_name}')"
+            tables[fk_table_name][pk_column_name] = f"models.foreignkey(model={fk.pktable_name},name='{pk_column_name}')"
     table_scores = [[k,v] for k,v in table_scores.items()]
     table_scores.sort(key=lambda x: x[1],reverse=True)
     table_scores = [t[0] for t in table_scores]
@@ -86,11 +89,12 @@ models.init("{ip}", "{database}", "{username}", "{password}")
             models_py += f"\n{intend}{field} = {val}"
     with open(file_name, "w", encoding="utf-8") as f:
         f.write(models_py)
-    with open("secrets2.json", "w") as fi:
+    with open("scheme.json", "w") as fi:
         json.dump(tables,fi,indent=2)
+def help_command(*args,**kwargs):
+    print(HELP)
 
-
-processes = {"init": init}
+processes = {"init": init,"help":help_command}
 if __name__ == '__main__':
     args = sys.argv[1:]
-    processes.get(args.pop(0))(*args)
+    processes.get(args.pop(0),help_command)(*args)

@@ -214,6 +214,8 @@ __reserved_keys__ = \
  'TRUNCATE',
  'FOREIGN']
 check_if_reserved = lambda key: f"[{key}]" if key.upper() in __reserved_keys__ else key
+check_if_i_reserved = lambda key: f'[{key}]' if key.upper() in __reserved_keys__ else key
+
 class field:
     __sub_instance__ = False
     __field__ = "field"  # name of field
@@ -244,6 +246,7 @@ class field:
             if filter:
                 return check_if_reserved(name) + filter + "?"
         return check_if_reserved(name) + "=" + "?"
+
     def __init__(self, default=None, safe=True, null=True):
         if not self.__sub_instance__ and safe:
             warnings.warn("DO NOT FORGET, USING DIRECT field CLASS IS NOT SUITABLE FOR NORMAL USAGE",

@@ -16,7 +16,7 @@ connection = None
 __connected__ = False
 
 
-def init(server, database, username, password,fast_executemany = True):
+def init(server, database, username, password, fast_executemany=True):
     """
     :param server: Server Ip or Server Name
     :param database: Database Name
@@ -29,7 +29,7 @@ def init(server, database, username, password,fast_executemany = True):
                                 f'Server={server};'
                                 f'Database={database};'
                                 f'UID={username};'
-                                f'PWD={password};',fast_executemany=fast_executemany)
+                                f'PWD={password};', fast_executemany=fast_executemany)
     global __connected__
     __connected__ = True
     # if not connection:
@@ -344,22 +344,24 @@ class Model:
         cls.__table_name__ = cls.__name__
         cls.__metadata__ = metadata
         cls.__subclass__ = True
-    def set(self,**kwargs):
+
+    def set(self, **kwargs):
         __metadata__ = self.__metadata__.copy()
         for field in kwargs:
-  
+
             if isinstance(getattr(self, field), Field.foreignKey):
                 fk = getattr(self, field)
-                
+
                 setattr(self, field,
-                            self.__metadata__.get(field).get_new(value=kwargs[field], model=fk.get_model(),
-                                                                 name=fk.get_name(),
-                                                                 safe=False))
-                
+                        self.__metadata__.get(field).get_new(value=kwargs[field], model=fk.get_model(),
+                                                             name=fk.get_name(),
+                                                             safe=False))
+
             else:
 
                 setattr(self, field, self.__metadata__.get(field).produce(kwargs[field], field))
         return self
+
     def dict(self, *fields: str, depth=0):
         """
 
@@ -450,7 +452,7 @@ class Model:
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
         cursor.close()
-        
+
         if args:
             return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
 
@@ -481,8 +483,9 @@ class Model:
         for args in cursor.fetchall():
             objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
         cursor.close()
-        
+
         return QueryDict(objs)
+
     @classmethod
     @extras.check_init
     def n_get(cls, *args, **kwargs):
@@ -493,7 +496,7 @@ class Model:
         if fields: del kwargs["fields"]
 
         cursor = connection.cursor()
-        
+
         names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
         args = " ".join([str(arg) for arg in args])
         text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
@@ -501,12 +504,12 @@ class Model:
             table="dbo." + cls.__table_name__,
             kwargs=names,
             args=args)
-        
-        cursor.execute(text,list(kwargs.values()))
+
+        cursor.execute(text, list(kwargs.values()))
         __fields__ = fields if fields else cls.__metadata__.keys()
         args = (cursor.fetchone())
         cursor.close()
-        
+
         if args:
             return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
 
@@ -530,14 +533,14 @@ class Model:
             table="dbo." + cls.__table_name__,
             kwargs=names,
             args=args)
-        cursor.execute(text,*kwargs.values())
+        cursor.execute(text, *kwargs.values())
         objs = []
         __fields__ = fields if fields else cls.__metadata__.keys()
 
         for args in cursor.fetchall():
             objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
         cursor.close()
-        
+
         return QueryDict(objs)
 
     @classmethod
@@ -575,7 +578,7 @@ class Model:
         cursor.execute(text)
         r_val = cursor.fetchone()[0]
         cursor.close()
-        
+
         return r_val
 
     def delete(self):
@@ -601,10 +604,10 @@ class Model:
         __metadata__ = self.__metadata__.copy()
         __metadata__.pop(self.PrimaryKey, None)
         self.primaryKey_value = getattr(self, self.PrimaryKey)
-        fields = __metadata__.keys()
+        fields = [mssql_fields.check_if_i_reserved(i) for i in __metadata__.keys()]
         values = [getattr(self, i).value if isinstance(getattr(self, i),
                                                        Field.foreignKey) else getattr(self, i)
-                  for i in vars(self) if i in fields]
+                  for i in vars(self) if i in __metadata__.keys()]
         text = 'UPDATE {table} SET  {set} WHERE {primarykey} = {primarykey_value} '.format(
             set=str(", ".join([f"{k}=?" for k, v in zip(fields, values)])),
             table="dbo." + self.__table_name__, primarykey=self.PrimaryKey,
@@ -625,17 +628,16 @@ class Model:
         cursor = connection.cursor()
         __metadata__ = self.__metadata__.copy()
         __metadata__.pop(self.PrimaryKey, None)
-        fields = __metadata__.keys()
+        fields = [mssql_fields.check_if_i_reserved(i) for i in __metadata__.keys()]
         values = [getattr(self, i).value if isinstance(getattr(self, i),
                                                        Field.foreignKey) else getattr(self, i)
-                  for i in vars(self) if i in fields]
+                  for i in vars(self) if i in __metadata__.keys()]
         text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
             fields=str(f'{", ".join(fields)}'),
             table="dbo." + self.__table_name__,
-            values=str(", ".join(["?" for i in range(len(values))])),
+            values=("?," * len(values))[:-1],
             primarykey=self.PrimaryKey)
         cursor.execute(text, *tuple(values))
-
 
         primarykey = cursor.fetchone()[0]
         setattr(self, self.PrimaryKey, primarykey)
@@ -837,3 +839,30 @@ class developers_models:
                 __fields__ = fields if fields else __fields__
                 objs.append(cls(**{k: v for k, v in zip(__fields__, args)}, fields=fields))
             return QueryDict(objs)
+# Lazy Field Declarations
+
+primarykey = Field.primaryKey
+foreignkey = Field.foreignKey
+bit = Field.bit
+bigint = Field.bigint
+int = Field.int
+smallint = Field.smallint
+tinyint = Field.tinyint
+decimal = Field.decimal
+numeric = Field.numeric
+money = Field.money
+smallmoney = Field.smallmoney
+float = Field.float
+real = Field.real
+char = Field.char
+nchar = Field.nchar
+varchar = Field.varchar
+nvarchar = Field.nvarchar
+text = Field.text
+ntext = Field.ntext
+binary = Field.binary
+varbinary = Field.varbinary
+image = Field.image
+date = Field.date
+datetime = Field.datetime
+smalldatetime = Field.smalldatetime
