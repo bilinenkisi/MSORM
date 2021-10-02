@@ -29,7 +29,7 @@ setup(
 
     keywords=['python', 'MSORM', "msorm", "mssql-python", "mssql orm in python"],
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Operating System :: MacOS :: MacOS X",

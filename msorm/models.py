@@ -16,7 +16,7 @@ connection = None
 __connected__ = False
 
 
-def init(server, database, username, password, fast_executemany=True):
+def init(server, database, username, password, fast_executemany=True,driver="ODBC Driver 17 for SQL Server"):
     """
     :param server: Server Ip or Server Name
     :param database: Database Name
@@ -25,7 +25,7 @@ def init(server, database, username, password, fast_executemany=True):
     :return:
     """
     global connection
-    connection = pyodbc.connect('Driver={SQL Server};'
+    connection = pyodbc.connect(f'Driver={driver};'
                                 f'Server={server};'
                                 f'Database={database};'
                                 f'UID={username};'
