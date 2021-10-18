@@ -24,12 +24,12 @@ setup(
     long_description_content_type="text/markdown",
 
     packages=find_packages(),
-    install_requires=["pyodbc"],  # add any additional packages that
+    install_requires=["pyodbc","tqdm"],  # add any additional packages that
     # needs to be installed along with your package. Eg: 'caer'
 
     keywords=['python', 'MSORM', "msorm", "mssql-python", "mssql orm in python"],
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Operating System :: MacOS :: MacOS X",

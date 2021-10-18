@@ -5,7 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
+.vscode
+secret.json
 test.py
+test_models.py
 # Distribution / packaging
 .Python
 build/

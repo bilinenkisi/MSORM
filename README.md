@@ -1,10 +1,11 @@
-﻿# Microsoft SQL Server Object Related Mapping
-**MSORM**
+﻿
+# Microsoft SQL Server Object Related Mapping
+##### MSORM
 [msorm](https://github.com/bilinenkisi/msorm) is a basic [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) [Object Related Mapper](https://en.wikipedia.org/wiki/Object%E2%80%93relational_mapping) for Python3.x versions. With msorm, existing mssql database can be easily mapped with django style model system. It is still an alpha project
 [Click For source code and pre-releases of msorm](https://github.com/bilinenkisi/msorm).
 
 ## Installation
-You can install the [msorm](https://github.com/bilinenkisi/msorm) from [PyPI](https://pypi.org/project/realpython-reader/):
+You can install the [msorm](https://github.com/bilinenkisi/msorm) from [PyPI](https://pypi.org/project/msorm/):
 
     pip install msorm
 
@@ -12,61 +13,108 @@ You can install the [msorm](https://github.com/bilinenkisi/msorm) from [PyPI](ht
 
 ## How to use
 To use [msorm](https://github.com/bilinenkisi/msorm) first of all you have to create python file (which is prefered name is "models.py"). After that you have to initialize [msorm](https://github.com/bilinenkisi/msorm) :
-
-	models.init(ip_adress or server_name, database_name,username, password)
+````Python
+from msorm import models
+ip_address = "ip address or server name"
+database_name = "TestDatabase"
+username = "username"
+password = "********"
+models.init(ip_address, database_name,username, password)
+````
 After initialization, you can start writing your own models. But models' name must have the same name as their representatives in  [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server). (without dbo tag in front of the table name).
 
 But before creating the models you should know the fields. The only field that came from  [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) is the Foreign key for the alpha version. The other fields are only reflections of  [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) fields  on python variable types.
 ### FIELDS
 Every field but the foreign key has a value parameter to be assigned as the value of the key in the database.
 Fields:
+```Python
+from msorm.models import Field, Model
 
-	from msorm.type_fields import Fields
-	
-	#value parameter is not a requirement
-	Fields.int(value=default_value)
-	
-	#value parameter is not a requirement
-	Fields.str(value=default_value)
-	
-	#value parameter is not a requirement
-	Fields.bool(value=default_value)
-	
-	#value parameter is not a requirement
-	Fields.float(value=default_value)
-	
-	#value parameter is not a requirement
-	#model variable is a requirement. And it uses for accesing the foreign table from id.
-	Fields.foreignKey(value=default_value,model=table_model)
-In newer versions of [msorm](https://github.com/bilinenkisi/msorm), fields probably will be changed  with their  better version that has better capabilities to manage  [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) with ORM 
+default_value = "default value of field 'For migrations'"
+
+isnullable = True # For null parameter standart value is True
+
+Field.bit(default=default_value, null=isnullable)
+
+Field.bigint(default=default_value, null=isnullable)
+
+Field.int(default=default_value, null=isnullable)
+
+Field.smallint(default=default_value, null=isnullable)
+
+Field.tinyint(default=default_value, null=isnullable)
+
+Field.decimal(default=default_value, null=isnullable, precision=18, scale=0)
+# precision and scale are not implemented yet
+Field.numeric(default=default_value, null=isnullable, precision=18, scale=0)
+
+Field.money(default=default_value, null=isnullable)
+
+Field.smallmoney(default=default_value, null=isnullable)
+
+Field.float(default=default_value, null=isnullable)
+
+Field.real(default=default_value, null=isnullable)
+length = 255 # length of the value, default value of length is min lenght of the field
+Field.char(default=default_value, null=isnullable, length=length)
+
+Field.nchar(default=default_value, null=isnullable, length=length)
+
+Field.varchar(default=default_value, null=isnullable, length=length)
+
+Field.nvarchar(default=default_value, null=isnullable, length=length)
+
+Field.text(default=default_value, null=isnullable)
+
+Field.ntext(default=default_value, null=isnullable)
+length = 255 # size of the value, default value of length is min lenght of the field
+Field.binary(default=default_value, null=isnullable, length=length)
+
+Field.varbinary(default=default_value, null=isnullable, length=length)
+
+Field.image(default=default_value, null=isnullable)
+
+Field.date(default=default_value, null=isnullable)
+
+Field.datetime(default=default_value, null=isnullable)
+
+Field.smalldatetime(default=default_value, null=isnullable)
+model = Model # the class of the foreign table
+value = 1 # pk of the foreign table
+name = "testTableID" # if the field's name is not same with class of the table set name as field's name
+Field.foreignKey(model, value, name)
+#primaryKey field has to be used, and there can be only one primaryKey for a table
+Field.primaryKey()
+```
 ### CREATING THE MODELS
+```Python
+from msorm import models
+from msorm.models import Field
+class Server(models.Model):
+    serverID = Field.primaryKey()
+    discordSystemID = Field.nvarchar(length=128)
+    languageID = Field.int()
+    active = Field.bit()
+    welcomeMessage = Field.text()
+    welcomeMessagePrivate = Field.bit()
+    premiumEndDate = Field.datetime()
+    isBlockedAllURL = Field.bit()
+    description = Field.text()
+    inviteURL = Field.nvarchar(length=64)
+    categoryID = Field.int()
+    tags = Field.text()
+    website = Field.nvarchar(length=128)
+    updateUUID = Field.nvarchar(length=4000)
 
-    from msorm import models  
-	from msorm.type_fields import Fields  
-		
-	models.init(server, database, username, password)  
-   
-	class Server(models.Model):  
-	    serverID = Fields.int()  
-	    languageID = Fields.int()  
-	    active = Fields.bool()  
-	    welcomeMessage = Fields.str()
-		welcomeMessagePrivate = Fields.bool()  
-	    premiumEndDate = Fields.str()  
-	    isBlockedAllURL = Fields.bool()  
-	    description = Fields.str()  
-	    tags = Fields.str()  
-	    website = Fields.str()  
-	    updateUUID = Fields.str()  
-	  
-	  
-	class Announce(models.Model):  
-	    announceID = Fields.int() 
-	    serverID = Fields.foreignKey(model=Server, name="serverID")  
-	    channelID = Fields.int()  
-	    loopHours = Fields.int()  
-	    text = Fields.str()  
-	    title = Fields.str()  
+
+class Announce(models.Model):
+    announceID = Field.primaryKey()
+    serverID = Field.foreignKey(model=Server, name="serverID")
+    channelID = Field.nvarchar(length=64)
+    loopHours = Field.int()
+    text = Field.text()
+    title = Field.nvarchar(length=32)
+```
 ### HOW TO MAKE QUERIES
 To make queries, In the alpha version [msorm](https://github.com/bilinenkisi/msorm) has only two methods. These are "where" and "all". Both methods have 'fields' parameter:
 #### 'fields' PARAMETER
@@ -121,39 +169,106 @@ To use where you can use **kwargs variable which represents collections of {fiel
 	#NOT IMPLEMENTED YET (v0.0.2a0)#
 	fieldname__like : SELECT * FROM table WHERE (key LIKE given pattern)
 with filters where(*args,**kwargs) method can be used like these:
+````Python
+from msorm.models import Model,Field
+class model_name(Model):
+    field1 = Field.primaryKey()
 
-	# There is no limit for fields or filters combination #
+    field2 = Field.int()
+
+    field3 = Field.int()
+# There is no limit for fields or filters combination #
+value = 1
+
+value2 = 2
+
+value3 = 4
+
+model_name.where(field1=value,field2=value2,field3=value3)
 	
-	model_name.where(field1=value,field2=value2,field3=value3)
+model_name.where(field1=value,field2__gt=value2,field3__gte=value3)
 	
-	model_name.where(field1=value,field2__gt=value2,field3__gte=value3)
+model_name.where(field1=value,field2__lt=value2,field3__lte=value3)
 	
-	model_name.where(field1=value,field2__lt=value2,field3__lte=value3)
+model_name.where(field1=value,field2__not=value2,field3__notin=value3)
 	
-	model_name.where(field1=value,field2__not=value2,field3__notin=value3)
-	
-	model_name.where(field1=value,field2__in=value2,field3__like=value3)
-	
+model_name.where(field1=value,field2__in=value2,field3__like=value3)
+````
 Also where(*args,**kwargs) method supports the special operators but all of them will probably be deprecated except OR(*other_operators, **kwargs) in newer versions.
 #### HOW TO USE OR(*other_operators, **kwargs)
 other_operators parameter will probably deprecated  in the newer versions. **kwargs variable represents collections of {field_name/filters:value}. OR operators can be used like this:
-	
-	# There is no limit for fields or filters combination #
+````Python
+from msorm.models import Model,Field, OR
+class model_name(Model):
+    field1 = Field.primaryKey()
 
-	model_name.where(OR(field1=value)|OR(field1=value2)|OR(field1=value3))
-	
-	model_name.where(OR(field1=value)|OR(field1__gt=value2)|OR(field1__gte=value3))
-	
-	model_name.where(OR(field1=value)|OR(field1__lt=value2)|OR(field1__lte=value3))
-	
-	model_name.where(OR(field1=value)|OR(field1__not=value2)|OR(field1__notin=value3))
-	
-	model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
-## TARGET FEATURES
+    field2 = Field.int()
 
- - [ ] get method
- - [ ] count method
- - [ ] save system
- - [ ] auto model creator from existing table
- - [ ] Migration Support
+    field3 = Field.int()	
+# There is no limit for fields or filters combination #
+value = 1
+
+value2 = 2
+
+value3 = 4
+
+model_name.where(OR(field1=value)|OR(field1=value2)|OR(field1=value3))
+	
+model_name.where(OR(field1=value)|OR(field1__gt=value2)|OR(field1__gte=value3))
+	
+model_name.where(OR(field1=value)|OR(field1__lt=value2)|OR(field1__lte=value3))
+	
+model_name.where(OR(field1=value)|OR(field1__not=value2)|OR(field1__notin=value3))
+	
+model_name.where(OR(field1=value)|OR(field1__in=value2)|OR(field1__like=value3))
+````
+#### HOW TO USE SAVE & UPDATE METHOD
+save & update method can be used only after model's initialization.
+**You don't have to use directly update method**
+when save method is called, if the primaryKey field of the model's instance is None, save method execute an **INSERT** sql but if it is not None then save method will call update method and it will execute an **UPDATE** sql
+````Python
+from msorm.models import Model,Field
+class  model_name(Model): 
+	field1 = Field.primaryKey() 
+	field2 = Field.int() 
+	field3 = Field.int()
+
+#save method for saving
+model_name_instance1 = model_name(field1=value1, field2=value2, field3=value3)
+#it will execute "INSERT" sql
+model_name_instance1.save()
+
+#save method for updating
+model_name_instance2 = model_name.get(field2__gt=1, ...)
+#it will execute "UPDATE"
+model_name_instance1.save() 
+````
+
+
+## TARGET FEATURES FOR VERSION 1.0.4a0
+ - [x] Added get method
+ - [x] Added first method
+ - [x] Added count method to Model class
+ - [x] Improved QueryDict class's dicts and values method
+ - [x] Added dict() and values() method to Model class
+ - [x] For dict() and dicts() methods, added depth parameter. (with depth parameter, related tables can be serialize as dictionary)
+ - [x] Added metadata via __init_subclass to make it easier to access the field's value except for foreign field.
+ - [x] Version data changed for better understanding of distributions of msorm.
+ - [x] QueryObject's find, get, remove and pop functions are changed. Now, to find the wanted obj you have to give a lambda function. 
+ Ex: QueryObject.get(lambda x: x.field_name == 1)
+ - [x] if QueryObject's get function can't succeed to find the wanted obj, it will raise ItemNotFound (ItemNotFoundException)
+ - [x] Operators removed and OR was moved to models.py.
+ - [x] Added __safe parameter for model __init\__ function to understand if __init\__ is called by a query or hand
+ - [x] type_fields.py renamed as mssql_fields.py
+ - [x] All fields were moved to Fields class which is in models.py
+ - [x] Added developer usage for field class, now it can be called directly for creating test models
+ - [x] Added settings.py
+ - [x] With settings.py, added __MFA\__ and __MFL\__ to check if value is suitable for the field 
+ - [x] Now, all fields except foreign key have produce method to  check if value is suitable for the field.
+ - [x] **Added most of the fields of [MSSQL](https://en.wikipedia.org/wiki/Microsoft_SQL_Server) to [msorm](https://github.com/bilinenkisi/msorm)**
+ - [x] Changed versioning system to Semantic Versioning
+ - [x] Added save & update & delete methods to Model class 
+ - [x] Made better where, get, first and count methods **17.06.2021**
+ - [x] Added automatic model creation from existing databases.
+ - [ ] Migration Support is Suspended for v1.0.4a0
 
