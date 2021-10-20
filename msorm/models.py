@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import traceback
 import inspect
 import sys
 import warnings
@@ -14,8 +14,7 @@ from msorm.mssql_fields import field
 
 connection = None
 __connected__ = False
-
-
+__connection_data__ = {}
 def init(server, database, username, password, fast_executemany=True,driver="ODBC Driver 17 for SQL Server"):
     """
     :param server: Server Ip or Server Name
@@ -24,7 +23,10 @@ def init(server, database, username, password, fast_executemany=True,driver="ODB
     :param password: required for remote server. for local set as ""
     :return:
     """
+    
+    
     global connection
+    __connection_data__.update({"server":server,"database":database,"username":username,"password":password,"fast_executemany":fast_executemany,"driver":driver})
     connection = pyodbc.connect(f'Driver={driver};'
                                 f'Server={server};'
                                 f'Database={database};'
@@ -433,218 +435,253 @@ class Model:
     @classmethod
     @extras.check_init
     def get(cls, *args, **kwargs):
-        if not kwargs and not args:
-            raise ValueError("you must provide at least one key and one value")
-        fields = kwargs.get("fields")
-
-        if fields: del kwargs["fields"]
-
-        cursor = connection.cursor()
-
-        kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
-        args = " ".join([str(arg) for arg in args])
-        text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
-            fields=str(f'{", ".join(fields)}' if fields else "*"),
-            table="dbo." + cls.__table_name__,
-            kwargs=kwargs,
-            args=args)
-        cursor.execute(text)
-        __fields__ = fields if fields else cls.__metadata__.keys()
-        args = (cursor.fetchone())
-        cursor.close()
-
-        if args:
-            return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
-
+        try:
+            if not kwargs and not args:
+                raise ValueError("you must provide at least one key and one value")
+            fields = kwargs.get("fields")
+    
+            if fields: del kwargs["fields"]
+    
+            cursor = connection.cursor()
+    
+            kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
+            args = " ".join([str(arg) for arg in args])
+            text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
+                fields=str(f'{", ".join(fields)}' if fields else "*"),
+                table="dbo." + cls.__table_name__,
+                kwargs=kwargs,
+                args=args)
+            cursor.execute(text)
+            __fields__ = fields if fields else cls.__metadata__.keys()
+            args = (cursor.fetchone())
+            cursor.close()
+    
+            if args:
+                return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return cls.get(*args, **kwargs)
         # raise NotImplementedError
 
     @classmethod
     @extras.check_init
     def where(cls, *args, **kwargs):
-        if not kwargs and not args:
-            raise ValueError("you must provide at least one key and one value")
-        fields = kwargs.get("fields")
-
-        if fields: del kwargs["fields"]
-
-        cursor = connection.cursor()
-
-        kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
-        args = " ".join([str(arg) for arg in args])
-        text = 'SELECT {fields} FROM {table} WHERE ({kwargs} {args})'.format(
-            fields=str(f'{", ".join(fields)}' if fields else "*"),
-            table="dbo." + cls.__table_name__,
-            kwargs=kwargs,
-            args=args)
-        cursor.execute(text)
-        objs = []
-        __fields__ = fields if fields else cls.__metadata__.keys()
-
-        for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
-        cursor.close()
-
+        try:
+            if not kwargs and not args:
+                raise ValueError("you must provide at least one key and one value")
+            fields = kwargs.get("fields")
+    
+            if fields: del kwargs["fields"]
+    
+            cursor = connection.cursor()
+    
+            kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
+            args = " ".join([str(arg) for arg in args])
+            text = 'SELECT {fields} FROM {table} WHERE ({kwargs} {args})'.format(
+                fields=str(f'{", ".join(fields)}' if fields else "*"),
+                table="dbo." + cls.__table_name__,
+                kwargs=kwargs,
+                args=args)
+            cursor.execute(text)
+            objs = []
+            __fields__ = fields if fields else cls.__metadata__.keys()
+    
+            for args in cursor.fetchall():
+                objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+            cursor.close()
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return cls.where(*args, **kwargs)
         return QueryDict(objs)
 
     @classmethod
     @extras.check_init
     def n_get(cls, *args, **kwargs):
-        if not kwargs and not args:
-            raise ValueError("you must provide at least one key and one value")
-        fields = kwargs.get("fields")
-
-        if fields: del kwargs["fields"]
-
-        cursor = connection.cursor()
-
-        names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
-        args = " ".join([str(arg) for arg in args])
-        text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
-            fields=str(f'{", ".join(fields)}' if fields else "*"),
-            table="dbo." + cls.__table_name__,
-            kwargs=names,
-            args=args)
-
-        cursor.execute(text, list(kwargs.values()))
-        __fields__ = fields if fields else cls.__metadata__.keys()
-        args = (cursor.fetchone())
-        cursor.close()
-
-        if args:
-            return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
-
-        # raise NotImplementedError
+        try:
+            if not kwargs and not args:
+                raise ValueError("you must provide at least one key and one value")
+            fields = kwargs.get("fields")
+    
+            if fields: del kwargs["fields"]
+    
+            cursor = connection.cursor()
+    
+            names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
+            args = " ".join([str(arg) for arg in args])
+            text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
+                fields=str(f'{", ".join(fields)}' if fields else "*"),
+                table="dbo." + cls.__table_name__,
+                kwargs=names,
+                args=args)
+    
+            cursor.execute(text, list(kwargs.values()))
+            __fields__ = fields if fields else cls.__metadata__.keys()
+            args = (cursor.fetchone())
+            cursor.close()
+    
+            if args:
+                return (cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return cls.n_get(*args, **kwargs)
 
     @classmethod
     @extras.check_init
     def n_where(cls, *args, **kwargs):
-        if not kwargs and not args:
-            raise ValueError("you must provide at least one key and one value")
-        fields = kwargs.get("fields")
-
-        if fields: del kwargs["fields"]
-
-        cursor = connection.cursor()
-
-        names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
-        args = " ".join([str(arg) for arg in args])
-        text = 'SELECT {fields} FROM {table} WHERE ({kwargs} {args})'.format(
-            fields=str(f'{", ".join(fields)}' if fields else "*"),
-            table="dbo." + cls.__table_name__,
-            kwargs=names,
-            args=args)
-        cursor.execute(text, *kwargs.values())
-        objs = []
-        __fields__ = fields if fields else cls.__metadata__.keys()
-
-        for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
-        cursor.close()
-
-        return QueryDict(objs)
-
+        try:
+            if not kwargs and not args:
+                raise ValueError("you must provide at least one key and one value")
+            fields = kwargs.get("fields")
+    
+            if fields: del kwargs["fields"]
+    
+            cursor = connection.cursor()
+    
+            names = " AND ".join([f"{mssql_fields.field.n_find_filter(key, value)}" for key, value in kwargs.items()])
+            args = " ".join([str(arg) for arg in args])
+            text = 'SELECT {fields} FROM {table} WHERE ({kwargs} {args})'.format(
+                fields=str(f'{", ".join(fields)}' if fields else "*"),
+                table="dbo." + cls.__table_name__,
+                kwargs=names,
+                args=args)
+            cursor.execute(text, *kwargs.values())
+            objs = []
+            __fields__ = fields if fields else cls.__metadata__.keys()
+    
+            for args in cursor.fetchall():
+                objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+            cursor.close()
+    
+            return QueryDict(objs)
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return cls.n_where(*args, **kwargs)
     @classmethod
     @extras.check_init
     def all(cls, *fields):
-        __fields__ = fields if fields else cls.__metadata__.keys()
-        cursor = connection.cursor()
-
-        text = 'SELECT {fields} FROM {table}'.format(fields=str(f'{", ".join(fields)}' if fields else "*"),
-                                                     table="dbo." + cls.__table_name__)
-        cursor.execute(text)
-        objs = []
-
-        for args in cursor.fetchall():
-            objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
-        cursor.close()
-
-        return QueryDict(objs)
-
+        try:
+            __fields__ = fields if fields else cls.__metadata__.keys()
+            cursor = connection.cursor()
+    
+            text = 'SELECT {fields} FROM {table}'.format(fields=str(f'{", ".join(fields)}' if fields else "*"),
+                                                         table="dbo." + cls.__table_name__)
+            cursor.execute(text)
+            objs = []
+    
+            for args in cursor.fetchall():
+                objs.append(cls(**{k: getattr(args, k) for k in __fields__}, __safe=False))
+            cursor.close()
+    
+            return QueryDict(objs)
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return cls.all(*fields)
     @classmethod
     @extras.check_init
     def count(cls, *args, **kwargs):
-        cursor = connection.cursor()
-        if kwargs or kwargs:
-            kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
-            args = " ".join([str(arg) for arg in args])
-            text = 'SELECT COUNT(*) FROM {table} WHERE ({kwargs} {args})'.format(
-                table="dbo." + cls.__table_name__,
-                kwargs=kwargs,
-                args=args)
-        else:
-            text = 'SELECT COUNT(*) FROM {table}'.format(
-                table="dbo." + cls.__table_name__
-            )
-        cursor.execute(text)
-        r_val = cursor.fetchone()[0]
-        cursor.close()
-
-        return r_val
-
+        try:
+            cursor = connection.cursor()
+            if kwargs or kwargs:
+                kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
+                args = " ".join([str(arg) for arg in args])
+                text = 'SELECT COUNT(*) FROM {table} WHERE ({kwargs} {args})'.format(
+                    table="dbo." + cls.__table_name__,
+                    kwargs=kwargs,
+                    args=args)
+            else:
+                text = 'SELECT COUNT(*) FROM {table}'.format(
+                    table="dbo." + cls.__table_name__
+                )
+            cursor.execute(text)
+            r_val = cursor.fetchone()[0]
+            cursor.close()
+    
+            return r_val
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return cls.count(*args, **kwargs)
     def delete(self):
-        cursor = connection.cursor()
-        __metadata__ = self.__metadata__.copy()
-        __metadata__.pop(self.PrimaryKey, None)
-        self.primaryKey_value = getattr(self, self.PrimaryKey)
-
-        text = f"DELETE FROM {self.__table_name__} WHERE {self.PrimaryKey}='{self.primaryKey_value}' "
-
-        result = cursor.execute(text)
-        if result.rowcount <= 0:
-            raise RuntimeError(f""""{text}" might be broken""")
-        connection.commit()
-        cursor.close()
-
+        try:
+            cursor = connection.cursor()
+            __metadata__ = self.__metadata__.copy()
+            __metadata__.pop(self.PrimaryKey, None)
+            self.primaryKey_value = getattr(self, self.PrimaryKey)
+    
+            text = f"DELETE FROM {self.__table_name__} WHERE {self.PrimaryKey}='{self.primaryKey_value}' "
+    
+            result = cursor.execute(text)
+            if result.rowcount <= 0:
+                raise RuntimeError(f""""{text}" might be broken""")
+            connection.commit()
+            cursor.close()
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return self.delete()
     def update(self):
-        """
-        Direct call for this function is not necessary.
-        :return: None
-        """
-        cursor = connection.cursor()
-        __metadata__ = self.__metadata__.copy()
-        __metadata__.pop(self.PrimaryKey, None)
-        self.primaryKey_value = getattr(self, self.PrimaryKey)
-        fields = [mssql_fields.check_if_i_reserved(i) for i in __metadata__.keys()]
-        values = [getattr(self, i).value if isinstance(getattr(self, i),
-                                                       Field.foreignKey) else getattr(self, i)
-                  for i in vars(self) if i in __metadata__.keys()]
-        text = 'UPDATE {table} SET  {set} WHERE {primarykey} = {primarykey_value} '.format(
-            set=str(", ".join([f"{k}=?" for k, v in zip(fields, values)])),
-            table="dbo." + self.__table_name__, primarykey=self.PrimaryKey,
-            primarykey_value=self.primaryKey_value)
-        cursor.execute(text, *tuple(values))
-        connection.commit()
-        cursor.close()
-
+        try:
+            """
+            Direct call for this function is not necessary.
+            :return: None
+            """
+            cursor = connection.cursor()
+            __metadata__ = self.__metadata__.copy()
+            __metadata__.pop(self.PrimaryKey, None)
+            self.primaryKey_value = getattr(self, self.PrimaryKey)
+            fields = [mssql_fields.check_if_i_reserved(i) for i in __metadata__.keys()]
+            values = [getattr(self, i).value if isinstance(getattr(self, i),
+                                                           Field.foreignKey) else getattr(self, i)
+                      for i in vars(self) if i in __metadata__.keys()]
+            text = 'UPDATE {table} SET  {set} WHERE {primarykey} = {primarykey_value} '.format(
+                set=str(", ".join([f"{k}=?" for k, v in zip(fields, values)])),
+                table="dbo." + self.__table_name__, primarykey=self.PrimaryKey,
+                primarykey_value=self.primaryKey_value)
+            cursor.execute(text, *tuple(values))
+            connection.commit()
+            cursor.close()
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return self.update()
     def save(self):
-        """
-        if primaryKey is not None, then call update method. if it is None, then run that function
-        :return: None
-        """
-        primarykey = getattr(self, self.PrimaryKey, None)
-        if not isinstance(primarykey, Field.primaryKey):
-            self.update()
-            return
-        cursor = connection.cursor()
-        __metadata__ = self.__metadata__.copy()
-        __metadata__.pop(self.PrimaryKey, None)
-        fields = [mssql_fields.check_if_i_reserved(i) for i in __metadata__.keys()]
-        values = [getattr(self, i).value if isinstance(getattr(self, i),
-                                                       Field.foreignKey) else getattr(self, i)
-                  for i in vars(self) if i in __metadata__.keys()]
-        text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
-            fields=str(f'{", ".join(fields)}'),
-            table="dbo." + self.__table_name__,
-            values=("?," * len(values))[:-1],
-            primarykey=self.PrimaryKey)
-        cursor.execute(text, *tuple(values))
-
-        primarykey = cursor.fetchone()[0]
-        setattr(self, self.PrimaryKey, primarykey)
-        connection.commit()
-        cursor.close()
-        return self
-
+        try:
+            """
+            if primaryKey is not None, then call update method. if it is None, then run that function
+            :return: None
+            """
+            primarykey = getattr(self, self.PrimaryKey, None)
+            if not isinstance(primarykey, Field.primaryKey):
+                self.update()
+                return
+            cursor = connection.cursor()
+            __metadata__ = self.__metadata__.copy()
+            __metadata__.pop(self.PrimaryKey, None)
+            fields = [mssql_fields.check_if_i_reserved(i) for i in __metadata__.keys()]
+            values = [getattr(self, i).value if isinstance(getattr(self, i),
+                                                           Field.foreignKey) else getattr(self, i)
+                      for i in vars(self) if i in __metadata__.keys()]
+            text = 'INSERT INTO {table}  ({fields})  OUTPUT INSERTED.{primarykey} VALUES ({values}) '.format(
+                fields=str(f'{", ".join(fields)}'),
+                table="dbo." + self.__table_name__,
+                values=("?," * len(values))[:-1],
+                primarykey=self.PrimaryKey)
+            cursor.execute(text, *tuple(values))
+    
+            primarykey = cursor.fetchone()[0]
+            setattr(self, self.PrimaryKey, primarykey)
+            connection.commit()
+            cursor.close()
+            return self
+        except Exception as e:
+            traceback.print_exc()            
+            init(**__connection_data__)
+            return self.update()
     def __iter__(self):
         for field in self.__fields__:
             yield getattr(self, field, None)
@@ -742,103 +779,7 @@ class QueryDict:
         return len(self.__objects__)
 
 
-# if __name__ == '__main__':
-class developers_models:
-    class INFORMATION_SCHEMA_COLUMNS(Model):
-        __name__ = "INFORMATION_SCHEMA.COLUMNS"
-        __table_name__ = "INFORMATION_SCHEMA.COLUMNS"
-        __primaryKey__ = False
-        TABLE_CATALOG = mssql_fields.field(safe=False)
-        TABLE_SCHEMA = mssql_fields.field(safe=False)
 
-        TABLE_NAME = mssql_fields.field(safe=False)
-
-        COLUMN_NAME = mssql_fields.field(safe=False)
-        ORDINAL_POSITION = mssql_fields.field(safe=False)
-        COLUMN_DEFAULT = mssql_fields.field(safe=False)
-        IS_NULLABLE = mssql_fields.field(safe=False)
-        DATA_TYPE = mssql_fields.field(safe=False)
-        CHARACTER_MAXIMUM_LENGTH = mssql_fields.field(safe=False)
-
-        CHARACTER_OCTET_LENGTH = mssql_fields.field(safe=False)
-        NUMERIC_PRECISION = mssql_fields.field(safe=False)
-
-        NUMERIC_PRECISION_RADIX = mssql_fields.field(safe=False)
-        DATETIME_PRECISION = mssql_fields.field(safe=False)
-        CHARACTER_SET_CATALOG = mssql_fields.field(safe=False)
-        CHARACTER_SET_SCHEMA = mssql_fields.field(safe=False)
-        CHARACTER_SET_NAME = mssql_fields.field(safe=False)
-        COLLATION_CATALOG = mssql_fields.field(safe=False)
-        COLLATION_SCHEMA = mssql_fields.field(safe=False)
-        DOMAIN_CATALOG = mssql_fields.field(safe=False)
-        DOMAIN_SCHEMA = mssql_fields.field(safe=False)
-        DOMAIN_NAME = mssql_fields.field(safe=False)
-
-        @classmethod
-        @extras.check_init
-        def get(cls, *args, **kwargs):
-            if not kwargs and not args:
-                raise ValueError("you must provide at least one key and one value")
-            fields = kwargs.get("fields")
-
-            if fields: del kwargs["fields"]
-
-            cursor = connection.cursor()
-
-            kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
-            args = " ".join([str(arg) for arg in args])
-            text = 'SELECT TOP 1 {fields} FROM {table} WHERE ({kwargs} {args})'.format(
-                fields=str(f'{", ".join(fields)}' if fields else "*"),
-                table="dbo." + "INFORMATION_SCHEMA.COLUMNS",
-                kwargs=kwargs,
-                args=args)
-            cursor.execute(text)
-            for args in cursor:
-                __fields__ = [name for name, value in vars(cls).items() if isinstance(value, mssql_fields.field)]
-                return (cls(**{k: v for k, v in zip(__fields__, args)}, fields=fields))
-
-            # raise NotImplementedError
-
-        @classmethod
-        @extras.check_init
-        def where(cls, *args, **kwargs):
-            if not kwargs and not args:
-                raise ValueError("you must provide at least one key and one value")
-            fields = kwargs.get("fields")
-
-            if fields: del kwargs["fields"]
-
-            cursor = connection.cursor()
-
-            kwargs = " AND ".join([f"{mssql_fields.field.find_filter(key, value)}" for key, value in kwargs.items()])
-            args = " ".join([str(arg) for arg in args])
-            text = 'SELECT {fields} FROM {table} WHERE ({kwargs} {args})'.format(
-                fields=str(f'{", ".join(fields)}' if fields else "*"),
-                table="dbo." + "INFORMATION_SCHEMA.COLUMNS",
-                kwargs=kwargs,
-                args=args)
-            cursor.execute(text)
-            objs = []
-            for args in cursor:
-                __fields__ = [name for name, value in vars(cls).items() if isinstance(value, mssql_fields.field)]
-                objs.append(cls(**{k: v for k, v in zip(__fields__, args)}, fields=fields))
-
-            return QueryDict(objs)
-
-        @classmethod
-        @extras.check_init
-        def all(cls, *fields):
-            cursor = connection.cursor()
-
-            text = 'SELECT {fields} FROM {table}'.format(fields=str(f'{", ".join(fields)}' if fields else "*"),
-                                                         table="INFORMATION_SCHEMA.COLUMNS")
-            cursor.execute(text)
-            objs = []
-            for args in cursor:
-                __fields__ = [name for name, value in vars(cls).items() if not name.startswith('_')]
-                __fields__ = fields if fields else __fields__
-                objs.append(cls(**{k: v for k, v in zip(__fields__, args)}, fields=fields))
-            return QueryDict(objs)
 # Lazy Field Declarations
 
 primarykey = Field.primaryKey
